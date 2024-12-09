@@ -1,11 +1,13 @@
 package gestioncomics;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
 
 // Clase que representa un cómic
-class Comic {
+class Comic implements Serializable {
+    private static final long serialVersionUID = 1L; // Identificador para la serialización
     private String titulo;
     private String autor;
     private int anoPublicacion;
@@ -49,16 +51,18 @@ class Comic {
 // Clase para gestionar la lista de cómics
 public class GestionComics {
     private ArrayList<Comic> comics;
+    private static final String ARCHIVO = "comics.dat";
 
     // Constructor
     public GestionComics() {
-        comics = new ArrayList<>();
+        comics = cargarComics(); // Cargar cómics al iniciar
     }
 
     // Método para agregar un cómic
     public void agregarComic(String titulo, String autor, int anoPublicacion) {
         Comic nuevoComic = new Comic(titulo, autor, anoPublicacion);
         comics.add(nuevoComic);
+        guardarComics(); // Guardar cambios
         System.out.println("Cómic agregado: " + nuevoComic);
     }
 
@@ -82,6 +86,7 @@ public class GestionComics {
             Comic comic = iterator.next();
             if (comic.getTitulo().equalsIgnoreCase(titulo)) {
                 iterator.remove();
+                guardarComics(); // Guardar cambios
                 System.out.println("Cómic eliminado: " + comic);
                 encontrado = true;
                 break;
@@ -92,70 +97,86 @@ public class GestionComics {
         }
     }
 
+    // Método para guardar los cómics en un archivo
+    private void guardarComics() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(ARCHIVO))) {
+            oos.writeObject(comics);
+        } catch (IOException e) {
+            System.err.println("Error al guardar los cómics: " + e.getMessage());
+        }
+    }
+
+    // Método para cargar los cómics desde un archivo
+    @SuppressWarnings("unchecked")
+    private ArrayList<Comic> cargarComics() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ARCHIVO))) {
+            return (ArrayList<Comic>) ois.readObject();
+        } catch (FileNotFoundException e) {
+            // El archivo no existe, devolvemos una lista vacía
+            return new ArrayList<>();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error al cargar los cómics: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
     // Método principal con validación de entradas
-public static void main(String[] args) {
+    public static void main(String[] args) {
+    // Configuración de la consola para usar UTF-8
     try {
-        System.setOut(new java.io.PrintStream(System.out, true, "UTF-8"));
-    } catch (java.io.UnsupportedEncodingException e) {
+        System.setOut(new PrintStream(System.out, true, "UTF-8"));
+    } catch (UnsupportedEncodingException e) {
         System.err.println("Error configurando UTF-8: " + e.getMessage());
     }
 
-    GestionComics gestionComics = new GestionComics();
-    Scanner scanner = new Scanner(System.in);
+        GestionComics gestionComics = new GestionComics();
+        Scanner scanner = new Scanner(System.in);
 
-    while (true) {
-        System.out.println("\nMenu:");
-        System.out.println("1. Agregar cómic");
-        System.out.println("2. Mostrar cómics");
-        System.out.println("3. Eliminar cómic");
-        System.out.println("4. Salir");
-        System.out.print("Seleccione una opción: ");
+        while (true) {
+            System.out.println("\nMenu:");
+            System.out.println("1. Agregar cómic");
+            System.out.println("2. Mostrar cómics");
+            System.out.println("3. Eliminar cómic");
+            System.out.println("4. Salir");
+            System.out.print("Seleccione una opción: ");
 
-        int opcion;
-        try {
-            opcion = Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            System.out.println("Por favor, ingrese un número válido.");
-            continue;
-        }
+            int opcion;
+            try {
+                opcion = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Por favor, ingrese un número válido.");
+                continue;
+            }
 
-        switch (opcion) {
-            case 1:
-                try {
-                    System.out.print("Ingrese el título del cómic: ");
-                    String titulo = scanner.nextLine();
-                    System.out.print("Ingrese el autor del cómic: ");
-                    String autor = scanner.nextLine();
-                    System.out.print("Ingrese el año de publicación del cómic: ");
-                    String anoInput = scanner.nextLine();
-
-                    int ano;
+            switch (opcion) {
+                case 1:
                     try {
-                        ano = Integer.parseInt(anoInput);
-                    } catch (NumberFormatException e) {
-                        System.out.println("El año de publicación debe ser un número válido.");
-                        break;
-                    }
+                        System.out.print("Ingrese el título del cómic: ");
+                        String titulo = scanner.nextLine();
+                        System.out.print("Ingrese el autor del cómic: ");
+                        String autor = scanner.nextLine();
+                        System.out.print("Ingrese el año de publicación del cómic: ");
+                        int ano = Integer.parseInt(scanner.nextLine());
 
-                    gestionComics.agregarComic(titulo, autor, ano);
-                } catch (IllegalArgumentException e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
-            case 2:
-                gestionComics.mostrarComics();
-                break;
-            case 3:
-                System.out.print("Ingrese el título del cómic a eliminar: ");
-                String tituloEliminar = scanner.nextLine();
-                gestionComics.eliminarComic(tituloEliminar);
-                break;
-            case 4:
-                System.out.println("Saliendo del programa.");
-                System.exit(0);
-            default:
-                System.out.println("Opción no válida. Intente de nuevo.");
+                        gestionComics.agregarComic(titulo, autor, ano);
+                    } catch (Exception e) {
+                        System.out.println("Error: " + e.getMessage());
+                    }
+                    break;
+                case 2:
+                    gestionComics.mostrarComics();
+                    break;
+                case 3:
+                    System.out.print("Ingrese el título del cómic a eliminar: ");
+                    String tituloEliminar = scanner.nextLine();
+                    gestionComics.eliminarComic(tituloEliminar);
+                    break;
+                case 4:
+                    System.out.println("Saliendo del programa.");
+                    System.exit(0);
+                default:
+                    System.out.println("Opción no válida. Intente de nuevo.");
+            }
         }
     }
-}
 }
